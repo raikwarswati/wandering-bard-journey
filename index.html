@@ -635,27 +635,27 @@
     const ITEMS_DATA = [
       // LEVEL 1 (Act 1): The Room
       {
-        id: 'photo', act: 1, icon: '🖼️', src: 'src/images/ashu_kid.png', x: 18, y: 30,
+        id: 'photo', act: 1, icon: '🖼️', src: 'src/images/ashu_kid.png', x: 28, y: 22,
         msg: "Seven years old. Fingers sore. Didn’t quit.\nThat kid is why you can play 'Just the Two of Us' from memory today.\nEvery dream starts with one small, stubborn choice."
       },
       {
-        id: 'guitar', act: 1, icon: '🎸', src: 'src/images/ashu_guitar.jpeg', x: 42, y: 62,
+        id: 'guitar', act: 1, icon: '🎸', src: 'src/images/ashu_guitar.jpeg', x: 44, y: 22,
         msg: "This guitar has been with you through heartbreak, joy, and 3 a.m. creativity.\nYou didn’t just play music—you felt it.\nOne day it’ll collect stories instead of dust."
       },
       {
-        id: 'sketchbook', act: 1, icon: '📓', src: 'src/images/sketch.png', x: 74, y: 25,
+        id: 'sketchbook', act: 1, icon: '📓', src: 'src/images/sketch.png', x: 72, y: 22,
         msg: "Hundreds of sketches. Hours of work.\nSome rough, some absoluttely brilliant like this one.\nLook at the fusion of the faces, the precision, the shading. You even made the imperfections - like an oil stain - feel intentional.\nTurning flaws into features is what mastery is all about."
       },
       {
-        id: 'meal', act: 1, icon: '🍲', src: 'src/images/food_alone.jpeg', x: 86, y: 72,
+        id: 'meal', act: 1, icon: '🍲', src: 'src/images/food_alone.jpeg', x: 50, y: 50,
         msg: "You’re not just creative—you nurture.\nYou mix ingredients the way you mix ideas and somehow make magic every time.\nLook at this bowl. Beautiful, comforting, packed with protein and love. This meal alone could start international diplomacy."
       },
       {
-        id: 'laptop', act: 1, icon: '💻', src: 'src/images/laptop.jpeg', x: 52, y: 82,
+        id: 'laptop', act: 1, icon: '💻', src: 'src/images/laptop.jpeg', x: 28, y: 74,
         msg: "While others your age were only doomscrolling, you were teaching yourself prompt engineering and how to build with AI. \nYou don’t just learn—you implement.\n You look for ways to solve real problems. \nYou’re not just using AI. You’re shaping it.\n Imagine the tools you’ll build for travelers, artists, and dreamers."
       },
       {
-        id: 'backpack', act: 1, icon: '🎒', src: 'src/images/bag.png', x: 10, y: 80,
+        id: 'backpack', act: 1, icon: '🎒', src: 'src/images/bag.png', x: 72, y: 74,
         msg: "This bag carried books, late nights, and quiet dreams.\nOne day it’ll carry a passport and a toothbrush.\nThe weight will feel different—lighter."
       },
 
@@ -810,6 +810,35 @@
 
       // Start loop
       requestAnimationFrame(gameLoop);
+
+      showIntroModal();
+    }
+
+    function showIntroModal() {
+      state.inModal = true;
+
+      document.getElementById('modal-icon').innerText = '🕯️';
+      document.getElementById('modal-text').innerText =
+        `Welcome.
+
+This room holds the memories that shaped you.
+
+In this game, help the character walk through the room and collect a few important moments — pieces of music, art, courage, and curiosity.
+
+These memories aren't just souvenirs.
+They're what you'll need to begin the next chapter.
+
+Take your time.
+When you're ready, the adventure will begin.`;
+
+      const btn = document.getElementById('modal-btn');
+      btn.innerText = 'Begin Walking';
+      btn.onclick = () => {
+        modalOverlay.classList.remove('open');
+        state.inModal = false;
+      };
+
+      modalOverlay.classList.add('open');
     }
 
     // -------------------------------------------------------------
@@ -826,10 +855,6 @@
       state.started = true;
       hideStartOverlay();
 
-      // gentle opener modal (context)
-      openInfoModal("🗝️",
-        "Welcome.\n\nCollect the memories in this room.\nThey’re not just objects—they’re proof.\n\nWhen you’ve found them all, you’ll be ready to see what they can become."
-      );
     }
 
     function restartGame() {
