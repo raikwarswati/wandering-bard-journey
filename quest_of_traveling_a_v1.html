@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Wandering Bard's Journey</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --act1-bg: #4a3f35;
+      /* Cozy bedroom tone */
+      --act1-accent: #e8d0b3;
+
+      --act3-bg: #8c5d3f;
+      /* Golden hour hilltop tone */
+      --act3-accent: #ffd180;
+
+      --font-main: 'Outfit', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: #fff;
+      font-family: var(--font-main);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      user-select: none;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: 1000px;
+      max-height: 700px;
+      background-color: var(--act1-bg);
+      border: 4px solid var(--act1-accent);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: background-color 1s ease, border-color 1s ease;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    }
+
+    /* ----- UI ----- */
+    header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.75);
+      border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+      z-index: 100;
+      gap: 12px;
+    }
+
+    .left-ui {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 240px;
+    }
+
+    #level-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      opacity: 0.95;
+    }
+
+    #progress-text {
+      font-size: 1.15rem;
+      font-weight: 600;
+      text-shadow: 1px 1px 2px #000;
+    }
+
+    .mobile-hint {
+      display: none;
+      font-size: 0.78rem;
+      color: #cfcfcf;
+      opacity: 0.9;
+      line-height: 1.2;
+    }
+
+    @media (max-width: 768px) {
+      .mobile-hint {
+        display: block;
+      }
+    }
+
+    #inventory {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      max-width: 52%;
+    }
+
+    .inv-slot {
+      width: 34px;
+      height: 34px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px dashed rgba(255, 255, 255, 0.35);
+      border-radius: 6px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.25rem;
+    }
+
+    .inv-slot.filled {
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .top-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+      flex: 1;
+    }
+
+    button {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.05s;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.28);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    /* ----- Scenes ----- */
+    .scene {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.8s ease;
+    }
+
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .decor {
+      position: absolute;
+      font-size: 8rem;
+      opacity: 0.1;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* ----- Items ----- */
+    .item {
+      position: absolute;
+      font-size: 3.2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6));
+      z-index: 10;
+      animation: float 3s ease-in-out infinite;
+      transition: transform 0.2s, filter 0.2s, opacity 0.2s;
+    }
+
+    .item:nth-child(even) {
+      animation-delay: 1.5s;
+      animation-duration: 4s;
+    }
+
+    .item:nth-child(3n) {
+      animation-delay: 0.5s;
+      animation-duration: 3.5s;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    .item.collected {
+      opacity: 0.2;
+      filter: grayscale(100%);
+      animation: none;
+    }
+
+    /* ----- Interaction Prompt ----- */
+    #interact-prompt {
+      position: absolute;
+      z-index: 50;
+      background: rgba(255, 255, 255, 0.92);
+      color: #000;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      display: none;
+      transform: translate(-50%, -120%);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+    }
+
+    @media (max-width: 768px) {
+      #interact-prompt {
+        transform: translate(-50%, -150%);
+        font-size: 0.78rem;
+      }
+    }
+
+    /* ----- Character ----- */
+    #character {
+      position: absolute;
+      width: 80px;
+      height: 120px;
+      z-index: 20;
+      transform-origin: bottom center;
+      transition: transform 0.1s linear;
+    }
+
+    .char-svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.7));
+    }
+
+    .hair {
+      fill: #2a1508;
+    }
+
+    .skin {
+      fill: #f1c27d;
+    }
+
+    .shirt {
+      fill: #386641;
+    }
+
+    .pants {
+      fill: #1a1a1a;
+    }
+
+    .guitar {
+      fill: #8b5a2b;
+    }
+
+    /* ----- Modal Dialog ----- */
+    #modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+
+    #modal-overlay.open {
+      display: flex;
+      opacity: 1;
+    }
+
+    #modal-box {
+      background: #262626;
+      border: 3px solid rgba(255, 255, 255, 0.9);
+      padding: 26px;
+      border-radius: 14px;
+      max-width: 560px;
+      width: 92%;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
+      animation: popIn 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      0% {
+        transform: scale(0.86);
+        opacity: 0;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    #modal-icon {
+      font-size: 4.8rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    #modal-text {
+      font-size: 1.15rem;
+      line-height: 1.55;
+      margin-bottom: 18px;
+      white-space: pre-wrap;
+      text-align: left;
+    }
+
+    #modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    #modal-btn {
+      background: #fff;
+      color: #000;
+      font-size: 1.05rem;
+      padding: 10px 18px;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+    }
+
+    #modal-btn:hover {
+      background: #e8e8e8;
+    }
+
+    #modal-close {
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      font-weight: 600;
+      border-radius: 10px;
+      padding: 10px 18px;
+    }
+
+    /* ----- Start / Transition / Ending Overlays ----- */
+    .fullscreen-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 250;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 30% 20%, rgba(255, 209, 128, 0.08), rgba(0, 0, 0, 0.9));
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+      padding: 16px;
+    }
+
+    .fullscreen-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .overlay-card {
+      max-width: 720px;
+      width: 100%;
+      background: rgba(25, 25, 25, 0.92);
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 14px 55px rgba(0, 0, 0, 0.6);
+    }
+
+    .overlay-title {
+      font-size: 2rem;
+      font-weight: 800;
+      margin: 0 0 6px 0;
+      letter-spacing: 0.2px;
+    }
+
+    .overlay-sub {
+      margin: 0 0 16px 0;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+
+    .overlay-list {
+      margin: 0 0 18px 18px;
+      color: rgba(255, 255, 255, 0.85);
+      line-height: 1.55;
+    }
+
+    .overlay-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    .primary {
+      background: #fff;
+      color: #000;
+      border: none;
+      font-weight: 800;
+    }
+
+    .primary:hover {
+      background: #eaeaea;
+    }
+
+    .ghost {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Ending text scroll */
+    #ending-text {
+      max-height: 45vh;
+      overflow: auto;
+      padding-right: 8px;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 1.05rem;
+      margin: 12px 0 18px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      padding-top: 14px;
+      padding-bottom: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="game-container">
+    <header>
+      <div class="left-ui">
+        <div id="level-title">LEVEL 1: The Room That Raised Him</div>
+        <div id="progress-text">Memories Collected: 0/12</div>
+        <div class="mobile-hint">Desktop: Arrow Keys / WASD to move • Space/Enter to interact<br>Mobile: Tap items to collect</div>
+      </div>
+
+      <div class="top-controls">
+        <button id="restart-btn" title="Restart anytime">🔄 Restart</button>
+        <button id="music-btn">🔇 Pause Music</button>
+
+        <div id="inventory"></div>
+      </div>
+    </header>
+
+    <!-- Character -->
+    <div id="character">
+      <svg class="char-svg" viewBox="0 0 100 150">
+        <g id="char-sprite">
+          <!-- Legs -->
+          <rect class="pants" x="35" y="110" width="10" height="35" rx="3" />
+          <rect class="pants" x="55" y="110" width="10" height="35" rx="3" />
+          <!-- Torso -->
+          <path class="shirt" d="M 30,60 L 70,60 L 75,115 L 25,115 Z" />
+          <!-- Strapped Guitar -->
+          <ellipse class="guitar" cx="25" cy="85" rx="15" ry="25" transform="rotate(-20 25 85)" />
+          <rect fill="#4a3017" x="5" y="55" width="8" height="30" transform="rotate(-20 5 55)" />
+          <!-- Head -->
+          <circle class="skin" cx="50" cy="40" r="20" />
+          <!-- Long Curly Hair -->
+          <path class="hair"
+            d="M 25,30 Q 15,45 20,65 Q 25,85 40,90 Q 35,70 30,50 Q 30,30 50,20 Q 70,30 70,50 Q 65,70 60,90 Q 75,85 80,65 Q 85,45 75,30 Q 65,10 50,10 Q 35,10 25,30 Z" />
+        </g>
+      </svg>
+    </div>
+
+    <!-- Interaction Prompt -->
+    <div id="interact-prompt">SPACE / TAP</div>
+
+    <!-- Scene 1: His Room -->
+    <div id="scene-1" class="scene active">
+      <div class="decor" style="top:18%; left:10%;">🛏️</div>
+      <div class="decor" style="top:55%; left:72%;">🧸</div>
+    </div>
+
+    <!-- Scene 2: The Vista (future postcards) -->
+    <div id="scene-3" class="scene">
+      <div class="decor" style="top:6%; left:43%;">☀️</div>
+      <div class="decor" style="top:55%; left:8%;">🌲</div>
+    </div>
+
+    <!-- Start Overlay -->
+    <div id="start-overlay" class="fullscreen-overlay active">
+      <div class="overlay-card">
+        <h1 class="overlay-title">The Wandering Bard’s Journey</h1>
+        <p class="overlay-sub">
+          Two levels. Twelve memories. One final chest.
+          <br>Collect the moments that made him—then see what they can become.
+        </p>
+        <ul class="overlay-list">
+          <li><b>Move:</b> Arrow Keys / WASD</li>
+          <li><b>Interact:</b> Space / Enter (or tap items on mobile)</li>
+          <li><b>Goal:</b> Collect all memories to unlock the final chest</li>
+          <li><b>Anytime:</b> Use <b>Restart</b> to start over</li>
+        </ul>
+        <div class="overlay-actions">
+          <button id="start-btn" class="primary">▶ Start Journey</button>
+          <button id="start-read-btn" class="ghost">📜 What is this?</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transition Overlay (Act 1 -> Act 2) -->
+    <div id="transition-overlay" class="fullscreen-overlay">
+      <div class="overlay-card">
+        <h2 class="overlay-title" id="trans-title">Act Transition</h2>
+        <p class="overlay-sub" id="trans-desc"></p>
+        <div class="overlay-actions">
+          <button id="trans-continue" class="primary">Continue</button>
+          <button id="trans-restart" class="ghost">🔄 Restart</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ending Overlay -->
+    <div id="ending-overlay" class="fullscreen-overlay">
+      <div class="overlay-card">
+        <h2 class="overlay-title">🎁 The Final Chest</h2>
+        <div id="ending-text"></div>
+        <div class="overlay-actions">
+          <button id="ending-restart" class="primary">🔄 Play Again</button>
+          <button id="ending-close" class="ghost">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal -->
+  <div id="modal-overlay">
+    <div id="modal-box">
+      <div id="modal-icon"></div>
+      <div id="modal-text"></div>
+      <div id="modal-actions">
+        <button id="modal-btn">Keep Memory</button>
+        <button id="modal-close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="bg-music" loop autoplay>
+    <source src="src/audio/got_tunes_latest.mp4" type="audio/mp4">
+  </audio>
+
+  <script>
+    // -------------------------------------------------------------
+    // Story + Items (Updated messages + arc)
+    // -------------------------------------------------------------
+    const FINAL_MESSAGE = [
+      "Remember the seven-year-old with the too-big guitar? Fingers sore, but determined.",
+      "That kid didn’t know about chord progressions or music theory. He just knew he wanted to make something beautiful.",
+      "",
+      "You’ve been that kid your whole life—with every sketch, every song, every conversation that made someone feel seen.",
+      "You’ve been practicing for a life you couldn’t yet see.",
+      "",
+      "Now you can see parts of it: Vancouver streets. Paris cafés. Mountains that sing back.",
+      "Friends who become family across borders. These are just a few possibilities—not limits.",
+      "",
+      "And I know the uncertainty can feel heavy sometimes.",
+      "But you’ve always had this rare talent: turning hard chapters into something meaningful.",
+      "Loneliness into music. Pressure into growth. Pain into art.",
+      "That’s not luck. That’s a skill.",
+      "",
+      "The work you did as a kid is the same work you’ll do at twenty-two:",
+      "show up, try, fail a little, try again.",
+      "The only difference is the stage.",
+      "It’s getting bigger. World-sized.",
+      "",
+      "This game is my promise: I’ll be here, cheering from wherever you are,",
+      "so proud of the person brave enough to become the story instead of just dreaming it.",
+      "",
+      "Happy Birthday, Wanderer.",
+      "The world isn’t waiting—it's unfolding.",
+      "And you’ve been practicing your whole life."
+    ].join("\n");
+
+    // 12 memories + 1 chest
+    const ITEMS_DATA = [
+      // LEVEL 1 (Act 1): The Room
+      {
+        id: 'photo', act: 1, icon: '🖼️', x: 18, y: 30,
+        msg: "Seven years old. Fingers sore. Didn’t quit.\nThat kid is why you can play 'Just the Two of Us' from memory today.\nEvery dream starts with one small, stubborn choice."
+      },
+      {
+        id: 'guitar', act: 1, icon: '🎸', x: 42, y: 62,
+        msg: "This guitar has been with you through heartbreak, joy, and 3 a.m. creativity.\nYou didn’t just play music—you felt it.\nOne day it’ll collect stories instead of dust."
+      },
+      {
+        id: 'sketchbook', act: 1, icon: '📓', src: 'src/images/sketch.png', x: 74, y: 25,
+        msg: "Hundreds of sketches. Hours of work.\nSome rough, some brilliant.\nEven the smudges feel intentional—turning flaws into features.\nThat’s mastery."
+      },
+      {
+        id: 'meal', act: 1, icon: '🍲', src: 'src/images/food.png', x: 86, y: 72,
+        msg: "You’re not just creative—you nurture.\nYou mix ingredients the way you mix ideas and somehow make magic.\nThis bowl alone could start international diplomacy."
+      },
+      {
+        id: 'laptop', act: 1, icon: '💻', x: 52, y: 82,
+        msg: "While others were only watching Netflix, you were teaching yourself how to build with AI.\nYou don’t just learn—you implement.\nYou’re not just using AI. You’re shaping it."
+      },
+      {
+        id: 'backpack', act: 1, icon: '🎒', x: 10, y: 80,
+        msg: "This bag carried books, late nights, and quiet dreams.\nOne day it’ll carry a passport and a toothbrush.\nThe weight will feel different—lighter."
+      },
+
+      // LEVEL 2 (Act 3): The Vista (postcards)
+      {
+        id: 'vancouver', act: 3, icon: '🍁', x: 20, y: 20,
+        msg: "Vancouver Street Corner:\nTuesday evening. Your guitar case has $47 and one tear-jerker tip.\nA stranger asks, “Do you play here often?”\nYou smile: “First time. Not the last.”"
+      },
+      {
+        id: 'paris', act: 3, icon: '🥐', x: 50, y: 16,
+        msg: "Paris Café Terrace:\nYou sketch an old man reading.\nHe buys it for €20 and says, “You captured my soul.”\nYou realize: art is just soul recognizing soul."
+      },
+      {
+        id: 'barcelona', act: 3, icon: '🥘', x: 80, y: 30,
+        msg: "Barcelona Hostel Kitchen:\nYou cook for twelve strangers from eight countries.\nBy the end of the night, you have twelve homes across the world.\nThat’s how it works—you feed people, and they become family."
+      },
+      {
+        id: 'nepal', act: 3, icon: '⛰️', x: 15, y: 60,
+        msg: "Nepal Mountain Trail:\nYou sing on a mountain.\nNo one hears—except the wind.\nThe wind sings back.\nNot religious… but it feels sacred."
+      },
+      {
+        id: 'berlin', act: 3, icon: '🤖', x: 70, y: 66,
+        msg: "Berlin AI Workshop:\nYou teach AI for art to twenty strangers.\nOne of them changes their career because of you.\nYou forget you changed a life because you were too busy living yours."
+      },
+      {
+        id: 'rooftop', act: 3, icon: '✨', x: 46, y: 82,
+        msg: "Rooftop with New Friends:\nBrazil, Japan, Italy, Canada.\nYou met them through travel and late-night conversations.\nSomehow… you became the destination."
+      },
+
+      // Final Chest (spawns after 12)
+      {
+        id: 'chest', act: 3, icon: '🧰', x: 52, y: 50, special: true,
+        msg: "The final chest is unlocked.\nOpen it when you’re ready."
+      }
+    ];
+
+    // -------------------------------------------------------------
+    // State
+    // -------------------------------------------------------------
+    const state = {
+      x: 100, y: 100,
+      act: 1,
+      collectedCount: 0,
+      collectedIds: new Set(),
+      speed: 5,
+      keys: {},
+      interactingTarget: null,
+      inModal: false,
+      inTransition: false,
+      started: false
+    };
+
+    // -------------------------------------------------------------
+    // DOM Elements
+    // -------------------------------------------------------------
+    const container = document.getElementById('game-container');
+    const character = document.getElementById('character');
+    const charSprite = document.getElementById('char-sprite');
+    const inventoryDiv = document.getElementById('inventory');
+    const promptDiv = document.getElementById('interact-prompt');
+
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalIcon = document.getElementById('modal-icon');
+    const modalText = document.getElementById('modal-text');
+    const modalBtn = document.getElementById('modal-btn');
+    const modalClose = document.getElementById('modal-close');
+
+    const levelTitle = document.getElementById('level-title');
+    const progressText = document.getElementById('progress-text');
+
+    const startOverlay = document.getElementById('start-overlay');
+    const startBtn = document.getElementById('start-btn');
+    const startReadBtn = document.getElementById('start-read-btn');
+
+    const transitionOverlay = document.getElementById('transition-overlay');
+    const transTitle = document.getElementById('trans-title');
+    const transDesc = document.getElementById('trans-desc');
+    const transContinue = document.getElementById('trans-continue');
+    const transRestart = document.getElementById('trans-restart');
+
+    const endingOverlay = document.getElementById('ending-overlay');
+    const endingText = document.getElementById('ending-text');
+    const endingRestart = document.getElementById('ending-restart');
+    const endingClose = document.getElementById('ending-close');
+
+    const restartBtn = document.getElementById('restart-btn');
+
+    // Audio
+    const bgMusic = document.getElementById('bg-music');
+    const musicBtn = document.getElementById('music-btn');
+    let musicPlaying = true;
+
+    // -------------------------------------------------------------
+    // Theme / Level labels
+    // -------------------------------------------------------------
+    const themeStyles = {
+      1: { bg: 'var(--act1-bg)', border: 'var(--act1-accent)', level: 'LEVEL 1: The Room That Raised Him', backdrop: null },
+      3: { bg: 'var(--act3-bg)', border: 'var(--act3-accent)', level: 'LEVEL 2: The Vista (Postcards from Tomorrow)', backdrop: 'src/images/level2backdrop.png' }
+    };
+
+    function setThemeForAct(act) {
+      const t = themeStyles[act];
+      container.style.backgroundColor = t.bg;
+      container.style.borderColor = t.border;
+      levelTitle.innerText = t.level;
+      if (t.backdrop) {
+        container.style.backgroundImage = `url(${t.backdrop})`;
+        container.style.backgroundSize = 'cover';
+        container.style.backgroundPosition = 'center';
+      } else {
+        container.style.backgroundImage = 'none';
+        container.style.backgroundSize = '';
+        container.style.backgroundPosition = '';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Init / Build world
+    // -------------------------------------------------------------
+    function init() {
+      // Inventory slots (12)
+      inventoryDiv.innerHTML = '';
+      for (let i = 0; i < 12; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'inv-slot';
+        slot.id = `inv-${i}`;
+        inventoryDiv.appendChild(slot);
+      }
+
+      // Items in DOM
+      ITEMS_DATA.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.id = `item-${item.id}`;
+        el.innerText = item.icon;
+        el.style.left = `${item.x}%`;
+        el.style.top = `${item.y}%`;
+
+        if (item.special) el.style.display = 'none'; // chest hidden initially
+
+        document.getElementById(`scene-${item.act}`).appendChild(el);
+
+        // Mobile click/tap
+        el.addEventListener('click', () => {
+          if (!state.started) return;
+          attemptInteraction(item, el);
+        });
+      });
+
+      // Start loop
+      requestAnimationFrame(gameLoop);
+    }
+
+    // -------------------------------------------------------------
+    // Start / Restart
+    // -------------------------------------------------------------
+    function showStartOverlay() {
+      startOverlay.classList.add('active');
+    }
+    function hideStartOverlay() {
+      startOverlay.classList.remove('active');
+    }
+
+    function startGame() {
+      state.started = true;
+      hideStartOverlay();
+
+      // gentle opener modal (context)
+      openInfoModal("🗝️",
+        "Welcome.\n\nCollect the memories in this room.\nThey’re not just objects—they’re proof.\n\nWhen you’ve found them all, you’ll be ready to see what they can become."
+      );
+    }
+
+    function restartGame() {
+      // reset state
+      state.x = 100; state.y = 100;
+      state.act = 1;
+      state.collectedCount = 0;
+      state.collectedIds = new Set();
+      state.keys = {};
+      state.interactingTarget = null;
+      state.inModal = false;
+      state.inTransition = false;
+      state.started = false;
+
+      // reset UI
+      progressText.innerText = `Memories Collected: 0/12`;
+      setThemeForAct(1);
+
+      // reset scenes
+      document.getElementById('scene-3').classList.remove('active');
+      document.getElementById('scene-1').classList.add('active');
+
+      // reset items visuals
+      ITEMS_DATA.forEach(item => {
+        const el = document.getElementById(`item-${item.id}`);
+        if (!el) return;
+        el.classList.remove('collected');
+        el.style.opacity = '';
+        el.style.filter = '';
+        el.style.animation = '';
+        el.style.transform = '';
+        if (item.special) el.style.display = 'none';
+      });
+
+      // reset inventory
+      for (let i = 0; i < 12; i++) {
+        const slot = document.getElementById(`inv-${i}`);
+        slot.innerText = '';
+        slot.classList.remove('filled');
+      }
+
+      // hide overlays
+      closeModal(true);
+      transitionOverlay.classList.remove('active');
+      endingOverlay.classList.remove('active');
+      promptDiv.style.display = 'none';
+
+      // reposition character
+      state.x = container.clientWidth / 2 - character.clientWidth / 2;
+      state.y = container.clientHeight - character.clientHeight - 20;
+      character.style.transform = `translate(${state.x}px, ${state.y}px) scaleX(1)`;
+      charSprite.style.transform = `translateY(0)`;
+
+      // show start overlay again
+      showStartOverlay();
+    }
+
+    // -------------------------------------------------------------
+    // Input
+    // -------------------------------------------------------------
+    window.addEventListener('keydown', e => {
+      if (!state.started) return;
+
+      state.keys[e.key] = true;
+
+      if ((e.key === ' ' || e.key === 'Enter') && !state.inModal && !state.inTransition) {
+        if (state.interactingTarget) attemptInteraction(state.interactingTarget.data, state.interactingTarget.el);
+      }
+    });
+
+    window.addEventListener('keyup', e => state.keys[e.key] = false);
+
+    // Music toggle
+    musicBtn.addEventListener('click', () => {
+      if (musicPlaying) {
+        bgMusic.pause();
+        musicBtn.innerText = '🎵 Play Music';
+      } else {
+        bgMusic.play();
+        musicBtn.innerText = '🔇 Pause Music';
+      }
+      musicPlaying = !musicPlaying;
+    });
+
+    // Autoplay unblock
+    let hasInteractedForAudio = false;
+    const handleFirstInteraction = () => {
+      if (!hasInteractedForAudio && musicPlaying) {
+        bgMusic.play().catch(() => { });
+        hasInteractedForAudio = true;
+        window.removeEventListener('keydown', handleFirstInteraction);
+        window.removeEventListener('click', handleFirstInteraction);
+      }
+    };
+    window.addEventListener('keydown', handleFirstInteraction);
+    window.addEventListener('click', handleFirstInteraction);
+
+    // Buttons
+    restartBtn.addEventListener('click', restartGame);
+
+    startBtn.addEventListener('click', startGame);
+    startReadBtn.addEventListener('click', () => {
+      openInfoModal("📜",
+        "This is a tiny two-level game.\n\nLEVEL 1 is his roots—proof of who he already is.\nLEVEL 2 is possibility—postcards from what the future could look like.\n\nCollect everything. Then open the final chest."
+      );
+    });
+
+    transContinue.addEventListener('click', () => {
+      transitionOverlay.classList.remove('active');
+      state.inTransition = false;
+      state.keys = {};
+    });
+
+    transRestart.addEventListener('click', restartGame);
+
+    endingRestart.addEventListener('click', restartGame);
+    endingClose.addEventListener('click', () => endingOverlay.classList.remove('active'));
+
+    // Modal close
+    modalClose.addEventListener('click', () => closeModal(false));
+
+    // -------------------------------------------------------------
+    // Game Loop
+    // -------------------------------------------------------------
+    let charPhase = 0;
+
+    function gameLoop() {
+      if (state.started && !state.inModal && !state.inTransition) {
+        updateMovement();
+        checkProximity();
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    function updateMovement() {
+      let dx = 0, dy = 0;
+
+      if (state.keys['ArrowLeft'] || state.keys['a']) dx = -1;
+      if (state.keys['ArrowRight'] || state.keys['d']) dx = 1;
+      if (state.keys['ArrowUp'] || state.keys['w']) dy = -1;
+      if (state.keys['ArrowDown'] || state.keys['s']) dy = 1;
+
+      // Normalize diagonal
+      if (dx !== 0 && dy !== 0) {
+        const dist = Math.hypot(dx, dy);
+        dx /= dist; dy /= dist;
+      }
+
+      const newX = state.x + dx * state.speed;
+      const newY = state.y + dy * state.speed;
+
+      const maxW = container.clientWidth - character.clientWidth;
+      const maxH = container.clientHeight - character.clientHeight;
+
+      state.x = Math.max(0, Math.min(newX, maxW));
+      state.y = Math.max(0, Math.min(newY, maxH));
+
+      // Flip
+      const facing = (dx < 0) ? -1 : 1;
+      const prevFlip = character.style.transform.includes('scaleX(-1)') ? -1 : 1;
+      const flip = (dx === 0) ? prevFlip : facing;
+
+      character.style.transform = `translate(${state.x}px, ${state.y}px) scaleX(${flip})`;
+
+      // Bob
+      if (dx !== 0 || dy !== 0) {
+        charPhase += 0.2;
+        const bob = Math.abs(Math.sin(charPhase)) * 10;
+        charSprite.style.transform = `translateY(-${bob}px)`;
+      } else {
+        charSprite.style.transform = `translateY(0)`;
+      }
+    }
+
+    function checkProximity() {
+      const actItems = ITEMS_DATA.filter(i => i.act === state.act && !state.collectedIds.has(i.id));
+      let closestItem = null;
+      let minDistance = 80;
+
+      const cx = state.x + character.clientWidth / 2;
+      const cy = state.y + character.clientHeight / 2;
+      const contRect = container.getBoundingClientRect();
+
+      actItems.forEach(item => {
+        if (item.special && state.collectedCount < 12) return;
+
+        const el = document.getElementById(`item-${item.id}`);
+        const ix = (item.x / 100) * contRect.width + el.clientWidth / 2;
+        const iy = (item.y / 100) * contRect.height + el.clientHeight / 2;
+
+        const dist = Math.hypot(cx - ix, cy - iy);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestItem = { data: item, el, px: ix, py: iy };
+        }
+      });
+
+      if (closestItem) {
+        state.interactingTarget = closestItem;
+        promptDiv.style.display = 'block';
+        promptDiv.style.left = `${closestItem.px}px`;
+        promptDiv.style.top = `${closestItem.py - 50}px`;
+        closestItem.el.style.transform = 'scale(1.2)';
+      } else {
+        if (state.interactingTarget) state.interactingTarget.el.style.transform = 'scale(1)';
+        state.interactingTarget = null;
+        promptDiv.style.display = 'none';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Interaction + Modal
+    // -------------------------------------------------------------
+    function openInfoModal(icon, text) {
+      state.inModal = true;
+      state.keys = {};
+      promptDiv.style.display = 'none';
+
+      modalIcon.innerText = icon;
+      modalText.innerText = text;
+      modalBtn.innerText = "Continue";
+      modalBtn.onclick = () => closeModal(false);
+
+      modalOverlay.classList.add('open');
+    }
+
+    function attemptInteraction(itemData, element) {
+      if (state.collectedIds.has(itemData.id)) return;
+      if (itemData.special && state.collectedCount < 12) return;
+
+      state.keys = {};
+      state.inModal = true;
+      promptDiv.style.display = 'none';
+
+      if (itemData.src) {
+        modalIcon.innerHTML = `<img src="${itemData.src}" style="max-width: 160px; border-radius: 10px;">`;
+      } else {
+        modalIcon.innerText = itemData.icon;
+      }
+
+      modalText.innerText = itemData.msg;
+
+      if (itemData.special) {
+        modalBtn.innerText = "Open Chest";
+      } else {
+        modalBtn.innerText = "Keep Memory";
+      }
+
+      modalBtn.onclick = () => {
+        collectItem(itemData, element);
+        closeModal(false);
+      };
+
+      modalOverlay.classList.add('open');
+    }
+
+    function closeModal(force) {
+      if (!force && !state.inModal) return;
+      state.inModal = false;
+      modalOverlay.classList.remove('open');
+      modalBtn.onclick = null;
+      state.keys = {};
+    }
+
+    function collectItem(itemData, element) {
+      // Final chest opens ending
+      if (itemData.special) {
+        triggerConfetti();
+        showEnding();
+        state.collectedIds.add(itemData.id);
+        return;
+      }
+
+      state.collectedIds.add(itemData.id);
+      element.classList.add('collected');
+      element.style.transform = 'scale(1)';
+
+      const slot = document.getElementById(`inv-${state.collectedCount}`);
+      slot.innerText = itemData.icon;
+      slot.classList.add('filled');
+
+      state.collectedCount++;
+      progressText.innerText = `Memories Collected: ${state.collectedCount}/12`;
+
+      // Act transition: after Level 1 is done (6 items)
+      if (state.collectedCount === 6 && state.act === 1) {
+        transitionToVista();
+      }
+
+      // Spawn chest after Level 2 is done (12 items)
+      if (state.collectedCount === 12 && state.act === 3) {
+        spawnChest();
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Level transitions
+    // -------------------------------------------------------------
+    function transitionToVista() {
+      state.inTransition = true;
+
+      // Switch scene first, but let them read the transition card
+      document.getElementById('scene-1').classList.remove('active');
+      document.getElementById('scene-3').classList.add('active');
+
+      // Update theme/act
+      state.act = 3;
+      setThemeForAct(3);
+
+      // Reposition character
+      state.x = container.clientWidth / 2 - character.clientWidth / 2;
+      state.y = container.clientHeight - character.clientHeight - 20;
+      character.style.transform = `translate(${state.x}px, ${state.y}px) scaleX(1)`;
+
+      // Transition message
+      transTitle.innerText = "Act 1 Complete";
+      transDesc.innerText =
+        "“Everything you need is already in that room.\nBut a room can only hold so much.\nThe rest of the world is waiting to be filled by you.”\n\nLEVEL 2 unlocked:\nPostcards from tomorrow.\nCollect them all to unlock the final chest.";
+      transitionOverlay.classList.add('active');
+    }
+
+    function spawnChest() {
+      const chestEl = document.getElementById('item-chest');
+      chestEl.style.display = 'flex';
+      chestEl.style.transform = 'scale(0)';
+      setTimeout(() => chestEl.style.transform = 'scale(1)', 50);
+
+      // small nudge
+      openInfoModal("🧰", "You’ve collected every postcard.\n\nThe final chest has appeared.\nGo open it.");
+    }
+
+    function showEnding() {
+      endingText.innerText = FINAL_MESSAGE;
+      endingOverlay.classList.add('active');
+    }
+
+    // -------------------------------------------------------------
+    // Confetti
+    // -------------------------------------------------------------
+    function triggerConfetti() {
+      const duration = 7 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
+
+      function randomInRange(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval = setInterval(function () {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) return clearInterval(interval);
+
+        const particleCount = 50 * (timeLeft / duration);
+
+        confetti(Object.assign({}, defaults, {
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+        }));
+        confetti(Object.assign({}, defaults, {
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+        }));
+      }, 250);
+    }
+
+    // -------------------------------------------------------------
+    // Boot
+    // -------------------------------------------------------------
+    function bootPosition() {
+      setThemeForAct(1);
+      state.x = container.clientWidth / 2 - character.clientWidth / 2;
+      state.y = container.clientHeight - character.clientHeight - 20;
+      character.style.transform = `translate(${state.x}px, ${state.y}px) scaleX(1)`;
+    }
+
+    // Ensure canvas size is ready
+    window.addEventListener('load', () => {
+      init();
+      bootPosition();
+      showStartOverlay();
+    });
+
+    window.addEventListener('resize', () => {
+      if (!state.started) bootPosition();
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Wandering Bard's Journey</title>
+    <!-- Use a nice pixel or readable modern font -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Confetti script for the end -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --act1-bg: #4a3f35;
+            /* Cozy bedroom tone */
+            --act1-accent: #e8d0b3;
+            --act2-bg: #2d3b40;
+            /* Misty forest tone */
+            --act2-accent: #9eb8ba;
+            --act3-bg: #8c5d3f;
+            /* Golden hour hilltop tone */
+            --act3-accent: #ffd180;
+            --font-main: 'Outfit', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #000;
+            color: #fff;
+            font-family: var(--font-main);
+            overflow: hidden;
+            /* Prevent scrolling, handle it in JS */
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 1000px;
+            max-height: 700px;
+            background-color: var(--act1-bg);
+            border: 4px solid var(--act1-accent);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: background-color 1s ease, border-color 1s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+        }
+
+        /* ----- UI ----- */
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            z-index: 100;
+        }
+
+        #progress-text {
+            font-size: 1.4rem;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        #inventory {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            max-width: 60%;
+        }
+
+        .inv-slot {
+            width: 35px;
+            height: 35px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px dashed rgba(255, 255, 255, 0.4);
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.4rem;
+        }
+
+        .inv-slot.filled {
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .top-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* ----- Scenes ----- */
+        .scene {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+        }
+
+        .scene.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Environmental Decor (Optional static background hints) */
+        .decor {
+            position: absolute;
+            font-size: 8rem;
+            opacity: 0.1;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* ----- Items ----- */
+        .item {
+            position: absolute;
+            font-size: 3.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s, filter 0.2s;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6));
+            z-index: 10;
+            /* Bobbing animation */
+            animation: float 3s ease-in-out infinite;
+        }
+
+        /* Add slight random delays so they don't bob exactly together */
+        .item:nth-child(even) {
+            animation-delay: 1.5s;
+            animation-duration: 4s;
+        }
+
+        .item:nth-child(3n) {
+            animation-delay: 0.5s;
+            animation-duration: 3.5s;
+        }
+
+        .item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            /* Optional rounded corners for images */
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .item.collected {
+            opacity: 0.2;
+            filter: grayscale(100%);
+            animation: none;
+        }
+
+        /* ----- Interaction Prompt ----- */
+        #interact-prompt {
+            position: absolute;
+            z-index: 50;
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            display: none;
+            transform: translate(-50%, -120%);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+        }
+
+        /* Mobile override info */
+        .mobile-hint {
+            display: none;
+            font-size: 0.8rem;
+            color: #ccc;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-hint {
+                display: block;
+            }
+
+            #interact-prompt {
+                transform: translate(-50%, -150%);
+                font-size: 0.8rem;
+            }
+        }
+
+        /* ----- Character ----- */
+        #character {
+            position: absolute;
+            width: 80px;
+            height: 120px;
+            /* Will be translated via JS for smooth movement */
+            z-index: 20;
+            transform-origin: bottom center;
+            transition: transform 0.1s linear;
+            /* Smooth direction flipping */
+        }
+
+        .char-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.7));
+        }
+
+        /* SVG Parts */
+        .hair {
+            fill: #2a1508;
+        }
+
+        /* Long dark curly hair */
+        .skin {
+            fill: #f1c27d;
+        }
+
+        .shirt {
+            fill: #386641;
+        }
+
+        .pants {
+            fill: #1a1a1a;
+        }
+
+        .guitar {
+            fill: #8b5a2b;
+        }
+
+        /* ----- Modal Dialog ----- */
+        #modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #modal-overlay.open {
+            display: flex;
+            opacity: 1;
+        }
+
+        #modal-box {
+            background: #2a2a2a;
+            border: 3px solid #fff;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        #modal-icon {
+            font-size: 5rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        #modal-text {
+            font-size: 1.3rem;
+            line-height: 1.5;
+            margin-bottom: 25px;
+            white-space: pre-wrap;
+            /* Preserve newlines in messages */
+        }
+
+        #modal-btn {
+            background: #fff;
+            color: #000;
+            font-size: 1.2rem;
+            padding: 10px 25px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+        }
+
+        #modal-btn:hover {
+            background: #ddd;
+        }
+
+        /* Act Transition Overlay */
+        #transition-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 150;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s;
+        }
+
+        #transition-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #trans-title {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            color: var(--act3-accent);
+        }
+
+        #trans-desc {
+            font-size: 1.5rem;
+            color: #ccc;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <header>
+            <div>
+                <div id="progress-text">Memories Collected: 0/12</div>
+                <div class="mobile-hint">Desktop: Arrow Keys + Spacebar to play.<br>Mobile: Tap items directly!</div>
+            </div>
+            <div class="top-controls">
+                <button id="music-btn">🎵 Play Music</button>
+                <!-- 12 slots total -->
+                <div id="inventory">
+                    <!-- Slots generated via JS -->
+                </div>
+            </div>
+        </header>
+
+        <!-- Character -->
+        <div id="character">
+            <svg class="char-svg" viewBox="0 0 100 150">
+                <!-- Bobbing whole character grouping -->
+                <g id="char-sprite">
+                    <!-- Legs -->
+                    <rect class="pants" x="35" y="110" width="10" height="35" rx="3" />
+                    <rect class="pants" x="55" y="110" width="10" height="35" rx="3" />
+                    <!-- Torso -->
+                    <path class="shirt" d="M 30,60 L 70,60 L 75,115 L 25,115 Z" />
+                    <!-- Strapped Guitar on back/side -->
+                    <ellipse class="guitar" cx="25" cy="85" rx="15" ry="25" transform="rotate(-20 25 85)" />
+                    <rect fill="#4a3017" x="5" y="55" width="8" height="30" transform="rotate(-20 5 55)" />
+                    <!-- Head -->
+                    <circle class="skin" cx="50" cy="40" r="20" />
+                    <!-- Long Curly Hair -->
+                    <path class="hair"
+                        d="M 25,30 Q 15,45 20,65 Q 25,85 40,90 Q 35,70 30,50 Q 30,30 50,20 Q 70,30 70,50 Q 65,70 60,90 Q 75,85 80,65 Q 85,45 75,30 Q 65,10 50,10 Q 35,10 25,30 Z" />
+                </g>
+            </svg>
+        </div>
+
+        <!-- Interaction Prompt -->
+        <div id="interact-prompt">Press SPACE / Click</div>
+
+        <!-- Scene 1: His Room -->
+        <div id="scene-1" class="scene active">
+            <div class="decor" style="top:20%; left:10%;">🛏️</div> <!-- Decor suggestion -->
+            <!-- Items inserted via JS -->
+        </div>
+
+        <!-- Scene 3: The Vista -->
+        <div id="scene-3" class="scene">
+            <div class="decor" style="top:5%; left:40%;">☀️</div>
+        </div>
+
+        <!-- Act Transition -->
+        <div id="transition-overlay">
+            <div id="trans-title">Act 3</div>
+            <div id="trans-desc">The Vista</div>
+        </div>
+
+    </div>
+
+    <!-- Modal -->
+    <div id="modal-overlay">
+        <div id="modal-box">
+            <div id="modal-icon"></div>
+            <div id="modal-text"></div>
+            <button id="modal-btn">Keep Memory</button>
+        </div>
+    </div>
+
+    <audio id="bg-music" loop autoplay>
+        <!-- Background music using provided recording -->
+        <source src="src/audio/got_tunes_latest.mp4" type="audio/mp4">
+    </audio>
+
+    <script>
+        // --- Data & Configuration ---
+        // A centralized config for all 12 items + the chest.
+        // If an item has 'src', it will render as an image. Otherwise, it will render 'icon' text.
+        const ITEMS_DATA = [
+            // Act 1: Room (0-5)
+            { id: 'photo', act: 1, icon: '🖼️', x: 20, y: 30, msg: "Seven years old. Fingers sore. Didn't quit. That kid is why you can play 'Just the two of us' with different dynamics today. Every dream starts with one small, stubborn choice." },
+            { id: 'guitar', act: 1, icon: '🎸', x: 40, y: 60, msg: "Your current guitar. The callouses and the melodies show how far you've come. This one's been with you through heartbreak, joy, and 3 AM creativity. Imagine it on a Vancouver street, collecting stories instead of dust." },
+            { id: 'sketchbook', act: 1, icon: '📓', src: 'src/images/sketch.png', x: 75, y: 25, msg: "Hundreds of pages. Some bad, some brilliant. All practice. Cafés in Paris don't care about perfection—they love the act of creating." },
+            { id: 'cookbooks', act: 1, icon: '🍜', src: 'src/images/food.png', x: 85, y: 70, msg: "Cookbooks with stained pages. You learned that creating joy takes patience and the right ingredients." },
+            { id: 'laptop', act: 1, icon: '💻', x: 50, y: 80, msg: "You taught yourself Prompt Engineering while others watched Netflix. Berlin workshops would pay to learn from you." },
+            { id: 'backpack', act: 1, icon: '🎒', x: 10, y: 80, msg: "This bag has carried books and dreams. One day it'll carry a passport and a toothbrush. The weight will feel different—lighter." },
+
+            // Act 3: Vista (6-11)
+            { id: 'vancouver', act: 3, icon: '🍁', x: 20, y: 20, msg: "Vancouver Street Corner: Tuesday evening. Your guitar case has $47 and one tear-jerker tip. A stranger asks, 'Do you play here often?' You smile. 'First time. Not the last.'" },
+            { id: 'paris', act: 3, icon: '🥐', x: 50, y: 15, msg: "Paris Café Terrace:You're drawing an old man reading. He buys the sketch for €20 and says, 'You captured my soul.' You realize art is just soul recognizing soul." },
+            { id: 'barcelona', act: 3, icon: '🥘', x: 80, y: 30, msg: "Barcelona Hostel Kitchen: Cooking a massive, delicious meal for new friends at a hostel in Barcelona." },
+            { id: 'nepal', act: 3, icon: '⛰️', x: 15, y: 60, msg: "Nepal Mountain Trail: You sang on a mountain. No one heard but the wind. The wind sang back. You understood something that day about smallness and belonging." },
+            { id: 'berlin', act: 3, icon: '🤖', x: 70, y: 65, msg: "Berlin AI Workshop: You're teaching AI art to 20 strangers. One of them changes careers because of you. You forgot you change lives when you're busy living yours." },
+            { id: 'rooftop', act: 3, icon: '🍻', x: 45, y: 80, msg: "Rooftop with New Friends: These four people are from Brazil, Japan, Italy, and Canada. You met them last year. They're planning to visit your hometown. You are the destination now.." },
+
+            // The Final Chest (Appears ONLY after 12 items are collected. We map it to Act 3)
+            { id: 'chest', act: 3, icon: '🧰', x: 50, y: 50, special: true, msg: "Happy Birthday!\nYour lifelong dedication proves you can build whatever life you want. The world is waiting for your art, your music, and your spirit. Go explore it!\n\nLove, your best friend." }
+        ];
+
+        // --- State ---
+        const state = {
+            x: 100, y: 100, // Character pos
+            act: 1, // 1, 2, 3
+            collectedCount: 0,
+            collectedIds: new Set(),
+            speed: 5,
+            keys: {},
+            interactingTarget: null,
+            inModal: false,
+            inTransition: false
+        };
+
+        // --- DOM Elements ---
+        const character = document.getElementById('character');
+        const charSprite = document.getElementById('char-sprite');
+        const container = document.getElementById('game-container');
+        const inventoryDiv = document.getElementById('inventory');
+        const promptDiv = document.getElementById('interact-prompt');
+        const modalOverlay = document.getElementById('modal-overlay');
+
+        // Map visual themes
+        const themeStyles = {
+            1: { bg: 'var(--act1-bg)', border: 'var(--act1-accent)', title: 'Act 1', desc: 'His Room' },
+            2: { bg: 'var(--act2-bg)', border: 'var(--act2-accent)', title: 'Act 2', desc: 'The Foggy Crossroads' },
+            3: { bg: 'var(--act3-bg)', border: 'var(--act3-accent)', title: 'Act 3', desc: 'The Vista' }
+        };
+
+        // --- Initialization ---
+        function init() {
+            // Generate Inventory Slots (12)
+            for (let i = 0; i < 12; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'inv-slot';
+                slot.id = `inv-${i}`;
+                inventoryDiv.appendChild(slot);
+            }
+
+            // Generate Items in DOM
+            ITEMS_DATA.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'item';
+                div.id = `item-${item.id}`;
+
+                // In the scene, always show icon (emoji). Image only appears in the modal overlay.
+                div.innerText = item.icon;
+
+                div.style.left = `${item.x}%`;
+                div.style.top = `${item.y}%`;
+
+                // Hide chest initially
+                if (item.special) div.style.display = 'none';
+
+                // Add to appropriate scene
+                document.getElementById(`scene-${item.act}`).appendChild(div);
+
+                // Click support for mobile
+                div.addEventListener('click', () => attemptInteraction(item, div));
+            });
+
+            // Start Loop
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Input ---
+        window.addEventListener('keydown', e => {
+            state.keys[e.key] = true;
+            if ((e.key === ' ' || e.key === 'Enter') && !state.inModal && !state.inTransition) {
+                if (state.interactingTarget) attemptInteraction(state.interactingTarget.data, state.interactingTarget.el);
+            }
+        });
+        window.addEventListener('keyup', e => state.keys[e.key] = false);
+
+        // Audio
+        const bgMusic = document.getElementById('bg-music');
+        const musicBtn = document.getElementById('music-btn');
+        let musicPlaying = true; // Auto-play enabled
+        musicBtn.innerText = '🔇 Pause Music';
+
+        musicBtn.addEventListener('click', () => {
+            if (musicPlaying) { bgMusic.pause(); musicBtn.innerText = '🎵 Play Music'; }
+            else { bgMusic.play(); musicBtn.innerText = '🔇 Pause Music'; }
+            musicPlaying = !musicPlaying;
+        });
+
+        // Browsers often block autoplay until the first user interaction.
+        let hasInteractedForAudio = false;
+        const handleFirstInteraction = () => {
+            if (!hasInteractedForAudio && musicPlaying) {
+                bgMusic.play().catch(err => console.log("Audio play blocked until interaction:", err));
+                hasInteractedForAudio = true;
+                window.removeEventListener('keydown', handleFirstInteraction);
+                window.removeEventListener('click', handleFirstInteraction);
+            }
+        };
+        window.addEventListener('keydown', handleFirstInteraction);
+        window.addEventListener('click', handleFirstInteraction);
+
+        // --- Game Loop ---
+        let lastTime = performance.now();
+        let charPhase = 0; // For walking animation bob
+
+        function gameLoop(time) {
+            if (!state.inModal && !state.inTransition) {
+                updateMovement(time);
+                checkProximity();
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateMovement(time) {
+            let dx = 0, dy = 0;
+            if (state.keys['ArrowLeft'] || state.keys['a']) dx = -1;
+            if (state.keys['ArrowRight'] || state.keys['d']) dx = 1;
+            if (state.keys['ArrowUp'] || state.keys['w']) dx = 0, dy = -1;
+            if (state.keys['ArrowDown'] || state.keys['s']) dx = 0, dy = 1;
+
+            // Normalize diagonal
+            if (dx !== 0 && dy !== 0) {
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                dx /= dist; dy /= dist;
+            }
+
+            // Bounds checking (keep character fully inside)
+            let newX = state.x + dx * state.speed;
+            let newY = state.y + dy * state.speed;
+
+            // Bounds depend on container size vs char size
+            const maxW = container.clientWidth - character.clientWidth;
+            const maxH = container.clientHeight - character.clientHeight;
+
+            // Correct diagonal bounds
+            state.x = Math.max(0, Math.min(newX, maxW));
+            state.y = Math.max(0, Math.min(newY, maxH));
+
+            // Flip character based on direction (CSS transform on the container)
+            if (dx > 0) character.style.transform = `translate(${state.x}px, ${state.y}px) scaleX(1)`;
+            else if (dx < 0) character.style.transform = `translate(${state.x}px, ${state.y}px) scaleX(-1)`;
+            else character.style.transform = `translate(${state.x}px, ${state.y}px) scaleX(${character.style.transform.includes('-1') ? '-1' : '1'})`;
+
+            // Walking bob animation
+            if (dx !== 0 || dy !== 0) {
+                charPhase += 0.2;
+                const bob = Math.abs(Math.sin(charPhase)) * 10;
+                charSprite.style.transform = `translateY(-${bob}px)`;
+            } else {
+                charSprite.style.transform = `translateY(0)`;
+            }
+        }
+
+        function checkProximity() {
+            // Only check items in current act that aren't collected
+            const actItems = ITEMS_DATA.filter(i => i.act === state.act && !state.collectedIds.has(i.id));
+
+            let closestItem = null;
+            let minDistance = 80;
+
+            const cx = state.x + character.clientWidth / 2;
+            const cy = state.y + character.clientHeight / 2;
+            const contRect = container.getBoundingClientRect();
+
+            actItems.forEach(item => {
+                if (item.special && state.collectedCount < 12) return;
+
+                const el = document.getElementById(`item-${item.id}`);
+                const ix = (item.x / 100) * contRect.width + el.clientWidth / 2;
+                const iy = (item.y / 100) * contRect.height + el.clientHeight / 2;
+
+                const dist = Math.hypot(cx - ix, cy - iy);
+
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestItem = { data: item, el: el, px: ix, py: iy };
+                }
+            });
+
+            if (closestItem) {
+                state.interactingTarget = closestItem;
+                promptDiv.style.display = 'block';
+                const targetXPx = closestItem.px;
+                const targetYPx = closestItem.py;
+                promptDiv.style.left = `${targetXPx}px`;
+                promptDiv.style.top = `${targetYPx - 50}px`;
+                closestItem.el.style.transform = 'scale(1.2)';
+            } else {
+                if (state.interactingTarget) {
+                    state.interactingTarget.el.style.transform = 'scale(1)';
+                }
+                state.interactingTarget = null;
+                promptDiv.style.display = 'none';
+            }
+        }
+
+        // --- Interaction & Modal ---
+        function attemptInteraction(itemData, element) {
+            if (state.collectedIds.has(itemData.id)) return;
+            if (itemData.special && state.collectedCount < 12) return;
+
+            state.keys = {};
+            state.inModal = true;
+            promptDiv.style.display = 'none';
+
+            const modalIcon = document.getElementById('modal-icon');
+            if (itemData.src) {
+                modalIcon.innerHTML = `<img src="${itemData.src}" style="max-width: 150px; border-radius: 8px;">`;
+            } else {
+                modalIcon.innerText = itemData.icon;
+            }
+
+            document.getElementById('modal-text').innerText = itemData.msg;
+
+            if (itemData.special) {
+                document.getElementById('modal-btn').innerText = "Finish Journey";
+            }
+
+            modalOverlay.classList.add('open');
+
+            document.getElementById('modal-btn').onclick = (e) => {
+                collectItem(itemData, element);
+                closeModal();
+            };
+        }
+
+        function closeModal() {
+            state.inModal = false;
+            modalOverlay.classList.remove('open');
+            document.getElementById('modal-btn').onclick = null;
+            state.keys = {};
+        }
+
+        function collectItem(itemData, element) {
+            if (itemData.special) {
+                triggerConfetti();
+                state.collectedIds.add(itemData.id);
+                return;
+            }
+
+            state.collectedIds.add(itemData.id);
+            element.classList.add('collected');
+            element.style.transform = 'scale(1)';
+
+            const slot = document.getElementById(`inv-${state.collectedCount}`);
+            slot.innerText = itemData.icon;
+            slot.classList.add('filled');
+
+            state.collectedCount++;
+            document.getElementById('progress-text').innerText = `Memories Collected: ${state.collectedCount}/12`;
+
+            if (state.collectedCount === 6 && state.act === 1) transitionAct(3);
+            else if (state.collectedCount === 12 && state.act === 3) spawnChest();
+        }
+
+        function transitionAct(newAct) {
+            state.inTransition = true;
+            const overlay = document.getElementById('transition-overlay');
+            const theme = themeStyles[newAct];
+
+            document.getElementById('trans-title').innerText = theme.title;
+            document.getElementById('trans-desc').innerText = theme.desc;
+            overlay.classList.add('active');
+
+            setTimeout(() => {
+                document.getElementById(`scene-${state.act}`).classList.remove('active');
+                document.getElementById(`scene-${newAct}`).classList.add('active');
+
+                container.style.backgroundColor = theme.bg;
+                container.style.borderColor = theme.border;
+
+                state.x = container.clientWidth / 2 - character.clientWidth / 2;
+                state.y = container.clientHeight - character.clientHeight - 20;
+                state.act = newAct;
+
+                setTimeout(() => {
+                    overlay.classList.remove('active');
+                    state.inTransition = false;
+                    state.keys = {};
+                }, 1000);
+
+            }, 1500);
+        }
+
+        function spawnChest() {
+            const chestEl = document.getElementById('item-chest');
+            chestEl.style.display = 'flex';
+            chestEl.style.transform = 'scale(0)';
+            setTimeout(() => chestEl.style.transform = 'scale(1)', 50);
+        }
+
+        function triggerConfetti() {
+            var duration = 8 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function () {
+                var timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) { return clearInterval(interval); }
+                var particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, {
+                    particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                }));
+                confetti(Object.assign({}, defaults, {
+                    particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                }));
+            }, 250);
+        }
+
+        // Start game
+        init(); </script>
+</body>
+
+</html>
