@@ -128,6 +128,37 @@
       .mobile-hint {
         display: block;
       }
+      header {
+        padding: 8px 10px;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .left-ui {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+      #level-title {
+        font-size: 0.88rem;
+      }
+      #progress-text {
+        font-size: 0.95rem;
+      }
+      .mobile-hint {
+        font-size: 0.7rem;
+        line-height: 1.15;
+      }
+      .top-controls {
+        width: 100%;
+        order: 3;
+        justify-content: flex-end;
+      }
+      .top-controls button {
+        padding: 6px 10px;
+        font-size: 0.85rem;
+      }
+      #inventory {
+        max-width: none;
+      }
     }
 
     #inventory {
@@ -339,6 +370,38 @@
       text-align: center;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
       animation: popIn 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #modal-box #modal-icon {
+      flex-shrink: 0;
+    }
+
+    #modal-box #modal-text {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    #modal-box #modal-actions {
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+      #modal-box {
+        max-height: 75vh;
+        max-height: 75dvh;
+        padding: 16px;
+      }
+      #modal-text {
+        font-size: 1rem;
+        margin-bottom: 12px;
+        max-height: 45vh;
+      }
+      #modal-actions {
+        margin-top: 4px;
+      }
     }
 
     @keyframes popIn {
@@ -655,7 +718,7 @@
         msg: "While others your age were only doomscrolling, you were teaching yourself prompt engineering and how to build with AI. \nYou don’t just learn—you implement.\n You look for ways to solve real problems. \nYou’re not just using AI. You’re shaping it.\n Imagine the tools you’ll build for travelers, artists, and dreamers."
       },
       {
-        id: 'backpack', act: 1, icon: '🎒', src: 'src/images/bag.png', x: 72, y: 74,
+        id: 'backpack', act: 1, icon: '🎒', src: 'src/images/bag_cropped.jpeg', x: 72, y: 74,
         msg: "This bag carried books, late nights, and quiet dreams.\nOne day it’ll carry a passport and a toothbrush.\nThe weight will feel different—lighter."
       },
 
@@ -1091,7 +1154,8 @@ When you're ready, the adventure will begin.`;
       promptDiv.style.display = 'none';
 
       if (itemData.src) {
-        modalIcon.innerHTML = `<img src="${itemData.src}" style="max-width: 160px; border-radius: 10px;">`;
+        const imgSize = itemData.act === 3 ? '280px' : '160px';
+        modalIcon.innerHTML = `<img src="${itemData.src}" style="max-width: ${imgSize}; border-radius: 10px;">`;
       } else {
         modalIcon.innerText = itemData.icon;
       }
