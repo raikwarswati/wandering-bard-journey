@@ -3,7 +3,9 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>The Wandering Bard's Journey</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Milonga&family=Outfit:wght@400;600&display=swap" rel="stylesheet">
@@ -19,32 +21,47 @@
       /* Golden hour hilltop tone */
       --act3-accent: #ffd180;
 
-      --font-main: 'Milonga', cursive;
+      --font-main: 'Comic Sans MS', cursive;
     }
 
     * {
       box-sizing: border-box;
     }
 
+    html {
+      height: 100%;
+      overflow: hidden;
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     body {
       margin: 0;
-      padding: 0;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
       background: #000;
       color: #fff;
       font-family: var(--font-main);
       overflow: hidden;
-      height: 100vh;
-      width: 100vw;
+      min-height: 100vh;
+      min-height: 100dvh;
+      height: 100%;
+      width: 100%;
+      max-width: 100vw;
       display: flex;
       justify-content: center;
       align-items: center;
       user-select: none;
+      touch-action: manipulation;
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
     }
 
     #game-container {
       position: relative;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
       max-width: 1000px;
       max-height: 700px;
       background-color: var(--act1-bg);
@@ -53,6 +70,15 @@
       overflow: hidden;
       transition: background-color 1s ease, border-color 1s ease;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    }
+
+    @media (max-width: 768px) {
+      #game-container {
+        max-height: none;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+      }
     }
 
     /* ----- UI ----- */
@@ -285,6 +311,7 @@
     #modal-overlay {
       position: fixed;
       inset: 0;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
       background: rgba(0, 0, 0, 0.85);
       display: none;
       justify-content: center;
@@ -306,6 +333,9 @@
       border-radius: 14px;
       max-width: 560px;
       width: 92%;
+      max-height: 85vh;
+      max-height: 85dvh;
+      overflow-y: auto;
       text-align: center;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
       animation: popIn 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -378,7 +408,7 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.35s ease;
-      padding: 16px;
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
     }
 
     .fullscreen-overlay.active {
@@ -533,7 +563,7 @@
     <!-- Transition Overlay (Act 1 -> Act 2) -->
     <div id="transition-overlay" class="fullscreen-overlay">
       <div class="overlay-card">
-        <h2 class="overlay-title" id="trans-title">Act Transition</h2>
+        <h2 class="overlay-title" id="trans-title">Level Transition</h2>
         <p class="overlay-sub" id="trans-desc"></p>
         <div class="overlay-actions">
           <button id="trans-continue" class="primary">Continue</button>
@@ -617,45 +647,47 @@
       },
       {
         id: 'sketchbook', act: 1, icon: '📓', src: 'src/images/sketch.png', x: 74, y: 25,
-        msg: "Hundreds of sketches. Hours of work.\nSome rough, some brilliant.\nEven the smudges feel intentional—turning flaws into features.\nThat’s mastery."
+        msg: "Hundreds of sketches. Hours of work.\nSome rough, some absoluttely brilliant like this one.\nLook at the fusion of the faces, the precision, the shading. You even made the imperfections - like an oil stain - feel intentional.\nTurning flaws into features is what mastery is all about."
       },
       {
         id: 'meal', act: 1, icon: '🍲', src: 'src/images/food_alone.jpeg', x: 86, y: 72,
-        msg: "You’re not just creative—you nurture.\nYou mix ingredients the way you mix ideas and somehow make magic.\nThis bowl alone could start international diplomacy."
+        msg: "You’re not just creative—you nurture.\nYou mix ingredients the way you mix ideas and somehow make magic every time.\nLook at this bowl. Beautiful, comforting, packed with protein and love. This meal alone could start international diplomacy."
       },
       {
         id: 'laptop', act: 1, icon: '💻', src: 'src/images/laptop.jpeg', x: 52, y: 82,
-        msg: "While others were only watching Netflix, you were teaching yourself how to build with AI.\nYou don’t just learn—you implement.\nYou’re not just using AI. You’re shaping it."
+        msg: "While others your age were only doomscrolling, you were teaching yourself prompt engineering and how to build with AI. \nYou don’t just learn—you implement.\n You look for ways to solve real problems. \nYou’re not just using AI. You’re shaping it.\n Imagine the tools you’ll build for travelers, artists, and dreamers."
       },
       {
         id: 'backpack', act: 1, icon: '🎒', src: 'src/images/bag.png', x: 10, y: 80,
         msg: "This bag carried books, late nights, and quiet dreams.\nOne day it’ll carry a passport and a toothbrush.\nThe weight will feel different—lighter."
       },
 
-      // LEVEL 2 (Act 3): The Vista (postcards)
+      // LEVEL 2 (Act 3): The Vista (postcards) — emojis at fixed positions
+      // top left: ⛰️ | top center: ✨ | top right: 🥐
+      // bottom left: 🍁 | center: 🥘 | bottom right: 🤖
       {
-        id: 'vancouver', act: 3, icon: '🍁', src: 'src/images/vancouverbusking.png', x: 20, y: 20,
-        msg: "Vancouver Street Corner:\nTuesday evening. Your guitar case has $47 and one tear-jerker tip.\nA stranger asks, “Do you play here often?”\nYou smile: “First time. Not the last.”"
-      },
-      {
-        id: 'paris', act: 3, icon: '🥐', src: 'src/images/parissketch.png', x: 50, y: 16,
-        msg: "Paris Café Terrace:\nYou sketch an old man reading.\nHe buys it for €20 and says, “You captured my soul.”\nYou realize: art is just soul recognizing soul."
-      },
-      {
-        id: 'barcelona', act: 3, icon: '🥘',src: 'src/images/barcelona_hostel.png', x: 80, y: 30,
-        msg: "Barcelona Hostel Kitchen:\nYou cook for twelve strangers from eight countries.\nBy the end of the night, you have twelve homes across the world.\nThat’s how it works—you feed people, and they become family."
-      },
-      {
-        id: 'nepal', act: 3, icon: '⛰️',src: 'src/images/mountain.png', x: 15, y: 60,
+        id: 'nepal', act: 3, icon: '⛰️', src: 'src/images/mountain.png', x: 8, y: 8,
         msg: "Nepal Mountain Trail:\nYou sing on a mountain.\nNo one hears—except the wind.\nThe wind sings back.\nNot religious… but it feels sacred."
       },
       {
-        id: 'berlin', act: 3, icon: '🤖', src: 'src/images/aiworkshop.png', x: 70, y: 66,
+        id: 'vancouver', act: 3, icon: '🍁', src: 'src/images/vancouverbusking.png', x: 8, y: 88,
+        msg: "Vancouver Street Corner:\nTuesday evening. Your guitar case has $47 and one tear-jerker tip.\nA stranger asks, “Do you play here often?”\nYou smile: “First time. Not the last.”"
+      },
+      {
+        id: 'paris', act: 3, icon: '🥐', src: 'src/images/parissketch.png', x: 88, y: 8,
+        msg: "Paris Café Terrace:\nYou sketch an old man reading.\nHe buys it for €20 and says, “You captured my soul.”\nYou realize: art is just soul recognizing soul."
+      },
+      {
+        id: 'berlin', act: 3, icon: '🤖', src: 'src/images/aiworkshop.png', x: 88, y: 88,
         msg: "Berlin AI Workshop:\nYou teach AI for art to twenty strangers.\nOne of them changes their career because of you.\nYou forget you changed a life because you were too busy living yours."
       },
       {
-        id: 'rooftop', act: 3, icon: '✨', src: 'src/images/chilling_friends.png', x: 46, y: 82,
+        id: 'rooftop', act: 3, icon: '✨', src: 'src/images/chilling_friends.png', x: 50, y: 8,
         msg: "Rooftop with New Friends:\nBrazil, Japan, Italy, Canada.\nYou met them through travel and late-night conversations.\nSomehow… you became the destination."
+      },
+      {
+        id: 'barcelona', act: 3, icon: '🥘', src: 'src/images/barcelona_hostel.png', x: 50, y: 50,
+        msg: "Barcelona Hostel Kitchen:\nYou cook for twelve strangers from eight countries.\nBy the end of the night, you have twelve homes across the world.\nThat’s how it works—you feed people, and they become family."
       },
 
       // Final Chest (spawns after 12)
@@ -1119,7 +1151,7 @@
       character.style.transform = `translate(${state.x}px, ${state.y}px) scaleX(1)`;
 
       // Transition message
-      transTitle.innerText = "Act 1 Complete";
+      transTitle.innerText = "Level 1 Complete";
       transDesc.innerText =
         "“Everything you need is already in that room.\nBut a room can only hold so much.\nThe rest of the world is waiting to be filled by you.”\n\nLEVEL 2 unlocked:\nPostcards from tomorrow.\nCollect them all to unlock the final chest.";
       transitionOverlay.classList.add('active');
